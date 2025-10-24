@@ -1,12 +1,11 @@
 package common;
 
-import javafx.util.Pair;
+import java.util.AbstractMap;
 import java.util.Scanner;
 
 /** Generic abstract board class for all games. */
 public abstract class Board<T> {
-
-    public static Pair<Integer, Integer> setupBoardDimensions(Scanner sc) {
+    public static AbstractMap.SimpleEntry<Integer, Integer> setupBoardDimensions(Scanner sc) {
         System.out.print("Rows: ");
         int rows = sc.nextInt();
         while (rows < 2 || rows > 10) {
@@ -22,7 +21,7 @@ public abstract class Board<T> {
             cols = sc.nextInt();
         }
         sc.nextLine(); // clear newline
-        return new Pair<>(rows, cols);
+        return new AbstractMap.SimpleEntry<>(rows, cols);
     }
 
     public abstract boolean isSolved();

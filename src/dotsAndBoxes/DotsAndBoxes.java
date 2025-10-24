@@ -5,8 +5,8 @@ import common.Game;
 import common.gameUtils.Score;
 import common.gameUtils.Timer;
 import common.player.Player;
-import javafx.util.Pair;
 
+import java.util.AbstractMap;
 import java.util.Scanner;
 
 /*Full interactive Dots and Boxes game.*/
@@ -43,7 +43,7 @@ public class DotsAndBoxes extends Game {
     public void start() {
         Scanner sc = new Scanner(System.in);
 
-        Pair<Integer, Integer> dimensions = Board.setupBoardDimensions(sc);
+        AbstractMap.SimpleEntry<Integer, Integer> dimensions = Board.setupBoardDimensions(sc);
         int rows = dimensions.getKey();
         int cols = dimensions.getValue();
 

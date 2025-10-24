@@ -5,8 +5,8 @@ import common.Game;
 import common.gameUtils.Score;
 import common.gameUtils.Timer;
 import common.player.Player;
-import javafx.util.Pair;
 
+import java.util.AbstractMap;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -33,7 +33,7 @@ public class SlidePuzzle extends Game {
 
         Player player = new Player(playerName, 0);
 
-        Pair<Integer, Integer> dimensions = Board.setupBoardDimensions(sc);
+        AbstractMap.SimpleEntry<Integer, Integer> dimensions = Board.setupBoardDimensions(sc);
         int rows = dimensions.getKey();
         int cols = dimensions.getValue();
 
