@@ -21,11 +21,12 @@ public class QuoridorBoard extends Board<String> {
     private static final String RESET = "\u001B[0m";
     private static final String RED   = "\u001B[31m";
     private static final String BLUE  = "\u001B[34m";
+    private static final String YELLOW  = "\u001B[33m";
     private static final String GRAY  = "\u001B[37m";
 
     private static final int CELL_W = 5;
     private static final String H_EMPTY = "-----";
-    private static final String H_WALL  = "=====";
+    private static final String H_WALL  = YELLOW + "=====" + RESET;
 
     public QuoridorBoard() {
         // default names/symbols supplied by Quoridor.java when printing
@@ -65,8 +66,10 @@ public class QuoridorBoard extends Board<String> {
 
         if (orientation == 'H') {
             String key = key(r, c);
+            String adjKey = key(r-1, c);
             if (hWalls.contains(key)) return false;
-            if (vWalls.contains(key) || vWalls.contains(key(r, c + 1))) return false;
+            if (hWalls.contains(adjKey)) return false;
+//            if (vWalls.contains(key) || vWalls.contains(key(r, c + 1))) return false;
 
             List<String> newEdges = hEdgesAt(r, c);
             if (wouldBlock(newEdges)) return false;
@@ -81,8 +84,10 @@ public class QuoridorBoard extends Board<String> {
             return true;
         } else {
             String key = key(r, c);
+            String adjKey = key(r, c-1);
             if (vWalls.contains(key)) return false;
-            if (hWalls.contains(key) || hWalls.contains(key(r + 1, c))) return false;
+            if (vWalls.contains(adjKey)) return false;
+//            if (hWalls.contains(key) || hWalls.contains(key(r + 1, c))) return false;
 
             List<String> newEdges = vEdgesAt(r, c);
             if (wouldBlock(newEdges)) return false;
@@ -164,7 +169,7 @@ public class QuoridorBoard extends Board<String> {
         return blocked.contains(edge(r1, c1, r2, c2));
     }
 
-    // ---- drawing ------------------------------------------------------------
+    // ---------------------------------  drawing  ---------------------------------
 
     @Override
     public String displayBoard() {
@@ -176,35 +181,51 @@ public class QuoridorBoard extends Board<String> {
         for (int c = 1; c <= N; c++) sb.append(center(Integer.toString(c), CELL_W + 1));
         sb.append("\n");
 
-        for (int r = 1; r <= N; r++) {
-            // horizontal line with walls
-            sb.append("   ").append(GRAY).append("+").append(RESET);
-            for (int c = 1; c <= N; c++) {
-                boolean aSeg = hWalls.contains(key(r, c));
-                if (aSeg) sb.append(H_WALL);
-                else sb.append(H_EMPTY);
-                sb.append(GRAY).append("+").append(RESET);
-            }
-            sb.append("\n");
+        // top line
+        sb.append("   ").append(GRAY).append("+").append(RESET);
+        for (int c = 1; c <= N; c++) sb.append(H_EMPTY).append(GRAY).append("+").append(RESET);
+        sb.append("\n");
 
+        boolean isHWallBuilding;
+        int vWallBuildingRow;
+        vWallBuildingRow = -1;
+
+        for (int r = 1; r <= N; r++) {
             // row label + cells with vertical walls
             sb.append(String.format("%2d ", r));
+            sb.append("|");
             for (int c = 1; c <= N; c++) {
-                boolean vSeg = vWalls.contains(key(r, c));
-                if (vSeg) sb.append("|"); else sb.append("|"); // same glyph; color留白
-
                 String cell = " ";
                 if (pawns[0].getRow() == r && pawns[0].getCol() == c) cell = RED + "A" + RESET;
                 if (pawns[1].getRow() == r && pawns[1].getCol() == c) cell = BLUE + "B" + RESET;
                 sb.append(center(cell, CELL_W));
-            }
-            sb.append("|").append("\n");
-        }
 
-        // bottom line
-        sb.append("   ").append(GRAY).append("+").append(RESET);
-        for (int c = 1; c <= N; c++) sb.append(H_EMPTY).append(GRAY).append("+").append(RESET);
-        sb.append("\n");
+                boolean vSeg = vWalls.contains(key(r, c));
+                // Gives yellow color for wall placement
+                if (vSeg || r == vWallBuildingRow) {
+                    sb.append(YELLOW + "\\" + RESET);
+                    if (r != vWallBuildingRow)
+                        vWallBuildingRow = r+1;
+                    else
+                        vWallBuildingRow = -1;
+                } else sb.append("|");
+            }
+            sb.append("\n");
+
+            // horizontal line with walls
+            isHWallBuilding = false;
+            sb.append("   ").append(GRAY).append("+").append(RESET);
+            for (int c = 1; c <= N; c++) {
+                boolean aSeg = hWalls.contains(key(r, c));
+                if (aSeg || isHWallBuilding) {
+                    sb.append(H_WALL);
+                    isHWallBuilding = !isHWallBuilding;
+                }
+                else sb.append(H_EMPTY);
+                sb.append(GRAY).append("+").append(RESET);
+            }
+            sb.append("\n");
+        }
 
         sb.append("Walls left \u2192 ")
                 .append("A: ").append(w[0]).append(" | ")

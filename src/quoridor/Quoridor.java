@@ -24,7 +24,7 @@ public class Quoridor extends Game {
         System.out.print("Player B name: ");
         String n2 = sc.nextLine().trim();
         if (n2.isEmpty()) n2 = "PlayerB";
-        //  修正参数顺序（你的 Player 是 Player(String name, int id)）
+        // Adds player names
         p1 = new Player(n1, 1);
         p2 = new Player(n2, 2);
         current = p1;
@@ -33,9 +33,15 @@ public class Quoridor extends Game {
         long startTime = System.currentTimeMillis();
 
         while (true) {
-            System.out.println(board.displayBoard());
-            System.out.printf("[%s] turn. Enter command (M r c | H r c | V r c | S | Q): ",
-                    current.getName());
+            System.out.print(board.displayBoard());
+            System.out.printf("A -> %s\n", p1.getName());
+            System.out.printf("B -> %s\n\n", p2.getName());
+            System.out.printf("[%s] turn. Enter a command :\n", current.getName());
+            System.out.println("M r c -> Move to row r and column c");
+            System.out.println("H r c -> Place horizontal wall top of box [r,c]");
+            System.out.println("V r c -> Place vertical wall left of box [r,c]");
+            System.out.println("S -> Show board");
+            System.out.println("Q -> Q to Main Menu");
             String cmd = sc.next().toUpperCase();
             if ("Q".equals(cmd) || "QUIT".equals(cmd)) {
                 System.out.println("Exiting Quoridor...");
