@@ -4,48 +4,43 @@ import common.Board;
 import java.util.*;
 
 /**
- * Quoridor Board (9x9)
- * ✅ Horizontal wall (H): blocks LEFT–RIGHT movement across TWO cells
- * ✅ Vertical wall (V): blocks UP–DOWN movement across TWO cells
- * - Automatically validates paths (no full block)
- * - Rolls back illegal walls
- * - Java 8 compatible (no String.repeat)
+ * Quoridor board (9x9).
+ * - Uses PawnPiece for players
+ * - Uses WallTile (extends Tile) for walls
+ * - Each wall covers TWO cells (horizontal or vertical)
+ * - Automatically checks if wall blocks all paths using BFS
+ * - Rolls back illegal placements
  */
 public class QuoridorBoard extends Board<String> {
 
     public static final int N = 9;
 
-    private final PawnPiece[] pawns = new PawnPiece[2]; // A and B
-    private final Set<String> blocked = new HashSet<>(); // stores blocked edges
-    private final Set<String> hWalls = new HashSet<>();  // horizontal wall anchors
-    private final Set<String> vWalls = new HashSet<>();  // vertical wall anchors
-    private final int[] wallsLeft = new int[]{10, 10};
+    private final PawnPiece[] pawns = new PawnPiece[2];
+    private final Set<String> blocked = new HashSet<>();
+    private final List<WallTile> walls = new ArrayList<>();
+    private final int[] wallsLeft = {10, 10};
 
-    // ANSI colors
     private static final String RESET = "\u001B[0m";
     private static final String RED   = "\u001B[31m";
     private static final String BLUE  = "\u001B[34m";
-    private static final String GRAY  = "\u001B[37m";
     private static final String YEL   = "\u001B[33m";
+    private static final String GRAY  = "\u001B[37m";
 
-    // board drawing
-    private static final int CELL_W = 5;
+    private static final String H_WALL = "=====";
     private static final String H_EMPTY = "-----";
-    private static final String H_WALL  = "=====";
+    private static final int CELL_W = 5;
 
     public QuoridorBoard() {
         pawns[0] = new PawnPiece(null, 1, 5, "A");
         pawns[1] = new PawnPiece(null, 9, 5, "B");
     }
 
-    public int[] getWallsLeft() { return Arrays.copyOf(wallsLeft, 2); }
-
     @Override
     public boolean isSolved() {
         return pawns[0].getRow() == N || pawns[1].getRow() == 1;
     }
 
-    // ------------------- Move Pawn -------------------
+    //  Move pawn
     public boolean movePawn(int pid, int r, int c) {
         if (!inBounds(r, c)) return false;
         int cr = pawns[pid].getRow(), cc = pawns[pid].getCol();
@@ -56,72 +51,49 @@ public class QuoridorBoard extends Board<String> {
         return true;
     }
 
-    // ------------------- Place Wall -------------------
+    //  Place wall (uses WallTile)
     public boolean placeWall(int pid, char orientation, int r, int c) {
         if (wallsLeft[pid] <= 0) return false;
         if (!(orientation == 'H' || orientation == 'V')) return false;
         if (!(1 <= r && r < N && 1 <= c && c < N)) return false;
 
         List<String> newEdges = new ArrayList<>();
-        List<String> newAnchors = new ArrayList<>();
+        List<WallTile> newTiles = new ArrayList<>();
 
         if (orientation == 'H') {
-            // Horizontal wall blocks LEFT–RIGHT across two cells
-            if (hWalls.contains(key(r, c)) || hWalls.contains(key(r, c + 1))) return false;
-            if (vWalls.contains(key(r, c)) || vWalls.contains(key(r, c + 1))) return false; // avoid crossing
-
-            newAnchors.add(key(r, c));
-            newAnchors.add(key(r, c + 1));
-
-            // Blocks (r - 1, c)-(r, c) and (r - 1, c + 1)-(r, c + 1)
-            newEdges.add(edge(r - 1, c, r, c));
-            newEdges.add(edge(r - 1, c + 1, r, c + 1));
-
-            hWalls.addAll(newAnchors);
+            // Horizontal wall blocks left-right between (r,c)-(r,c+1) and (r+1,c)-(r+1,c+1)
+            newEdges.add(edge(r, c, r, c + 1));
+            newEdges.add(edge(r + 1, c, r + 1, c + 1));
+            newTiles.add(new WallTile(r, c, true));
+            newTiles.add(new WallTile(r, c + 1, true));
         } else {
-            // Vertical wall blocks UP–DOWN across two cells
-            if (vWalls.contains(key(r, c)) || vWalls.contains(key(r + 1, c))) return false;
-            if (hWalls.contains(key(r, c)) || hWalls.contains(key(r + 1, c))) return false; // avoid crossing
-
-            newAnchors.add(key(r, c));
-            newAnchors.add(key(r + 1, c));
-
-            // Blocks (r, c - 1)-(r, c) and (r + 1, c - 1)-(r + 1, c)
-            newEdges.add(edge(r, c - 1, r, c));
-            newEdges.add(edge(r + 1, c - 1, r + 1, c));
-
-            vWalls.addAll(newAnchors);
+            // Vertical wall blocks up-down between (r,c)-(r+1,c) and (r,c+1)-(r+1,c+1)
+            newEdges.add(edge(r, c, r + 1, c));
+            newEdges.add(edge(r, c + 1, r + 1, c + 1));
+            newTiles.add(new WallTile(r, c, false));
+            newTiles.add(new WallTile(r + 1, c, false));
         }
 
-        // avoid overlapping same edge twice
         for (String e : newEdges)
-            if (blocked.contains(e)) { rollbackAnchors(orientation, newAnchors); return false; }
-
+            if (blocked.contains(e)) return false;
         blocked.addAll(newEdges);
 
-        // rollback if it causes total block
         if (!pathsRemain()) {
             blocked.removeAll(newEdges);
-            rollbackAnchors(orientation, newAnchors);
             return false;
         }
 
+        walls.addAll(newTiles);
         wallsLeft[pid]--;
         return true;
     }
 
-    private void rollbackAnchors(char ori, List<String> anchors) {
-        if (ori == 'H') hWalls.removeAll(anchors);
-        else vWalls.removeAll(anchors);
-    }
-
-    // ------------------- Path Validation (BFS) -------------------
     private boolean pathsRemain() { return hasPath(0) && hasPath(1); }
 
     private boolean hasPath(int pid) {
         int goal = (pid == 0) ? N : 1;
         boolean[][] vis = new boolean[N + 1][N + 1];
-        ArrayDeque<int[]> q = new ArrayDeque<>();
+        Queue<int[]> q = new ArrayDeque<>();
         q.add(new int[]{pawns[pid].getRow(), pawns[pid].getCol()});
         vis[pawns[pid].getRow()][pawns[pid].getCol()] = true;
 
@@ -139,62 +111,50 @@ public class QuoridorBoard extends Board<String> {
     }
 
     private List<int[]> neighbors(int r, int c) {
-        List<int[]> out = new ArrayList<>(4);
-        if (inBounds(r - 1, c)) out.add(new int[]{r - 1, c});
-        if (inBounds(r + 1, c)) out.add(new int[]{r + 1, c});
-        if (inBounds(r, c - 1)) out.add(new int[]{r, c - 1});
-        if (inBounds(r, c + 1)) out.add(new int[]{r, c + 1});
-        return out;
+        List<int[]> res = new ArrayList<>(4);
+        if (inBounds(r - 1, c)) res.add(new int[]{r - 1, c});
+        if (inBounds(r + 1, c)) res.add(new int[]{r + 1, c});
+        if (inBounds(r, c - 1)) res.add(new int[]{r, c - 1});
+        if (inBounds(r, c + 1)) res.add(new int[]{r, c + 1});
+        return res;
     }
 
     private boolean inBounds(int r, int c) { return 1 <= r && r <= N && 1 <= c && c <= N; }
-    private String key(int r, int c) { return r + "," + c; }
-
     private String edge(int r1, int c1, int r2, int c2) {
         if (r1 > r2 || (r1 == r2 && c1 > c2)) {
             int tr = r1, tc = c1; r1 = r2; c1 = c2; r2 = tr; c2 = tc;
         }
         return r1 + "," + c1 + "-" + r2 + "," + c2;
     }
-
     private boolean isBlocked(int r1, int c1, int r2, int c2) {
         return blocked.contains(edge(r1, c1, r2, c2));
     }
 
-    // ------------------- Drawing -------------------
+    //  Display
     @Override
     public String displayBoard() {
         StringBuilder sb = new StringBuilder();
-        int[] w = getWallsLeft();
-
         sb.append("    ");
         for (int c = 1; c <= N; c++)
             sb.append(center(Integer.toString(c), CELL_W + 1));
         sb.append("\n");
 
         for (int r = 1; r <= N; r++) {
-            // top walls
             sb.append("   ").append(GRAY).append("+").append(RESET);
             for (int c = 1; c <= N; c++) {
-                if (hWalls.contains(key(r, c))) sb.append(YEL).append(H_WALL).append(RESET);
-                else sb.append(GRAY).append(H_EMPTY).append(RESET);
+                boolean h = hasWall(r, c, true);
+                sb.append(h ? YEL + H_WALL + RESET : GRAY + H_EMPTY + RESET);
                 sb.append(GRAY).append("+").append(RESET);
             }
             sb.append("\n");
 
-            // row cells
             sb.append(String.format("%2d ", r));
             for (int c = 1; c <= N; c++) {
-                if (vWalls.contains(key(r, c))) sb.append(YEL).append("\\").append(RESET);
-                else sb.append(GRAY).append("|").append(RESET);
+                boolean v = hasWall(r, c, false);
+                sb.append(v ? YEL + "|" + RESET : GRAY + "|" + RESET);
 
                 String cell = " ";
-                if (pawns[0].getRow() == r && pawns[0].getCol() == c){
-                    if (pawns[0].getRow() == pawns[1].getRow() && pawns[0].getCol() == pawns[1].getCol())
-                        cell = RED + "A" + RESET + " & " + BLUE + "B" + RESET;
-                    else
-                        cell = RED + "A" + RESET;
-                }
+                if (pawns[0].getRow() == r && pawns[0].getCol() == c) cell = RED + "A" + RESET;
                 else if (pawns[1].getRow() == r && pawns[1].getCol() == c) cell = BLUE + "B" + RESET;
 
                 sb.append(center(cell, CELL_W));
@@ -202,22 +162,24 @@ public class QuoridorBoard extends Board<String> {
             sb.append(GRAY).append("|").append(RESET).append("\n");
         }
 
-        // bottom border
         sb.append("   ").append(GRAY).append("+").append(RESET);
         for (int c = 1; c <= N; c++)
             sb.append(GRAY).append(H_EMPTY).append("+").append(RESET);
         sb.append("\n");
 
-        sb.append("Walls left → ")
-                .append(RED).append("A: ").append(w[0]).append(RESET)
-                .append(" | ")
-                .append(BLUE).append("B: ").append(w[1]).append(RESET)
-                .append("\n");
+        sb.append("Walls left → A: ").append(wallsLeft[0])
+                .append(" | B: ").append(wallsLeft[1]).append("\n");
 
         return sb.toString();
     }
 
-    // ---- alignment helper ----
+    private boolean hasWall(int r, int c, boolean horiz) {
+        for (WallTile w : walls)
+            if (w.getRow() == r && w.getCol() == c && w.isHorizontal() == horiz)
+                return true;
+        return false;
+    }
+
     private static String center(String s, int width) {
         int len = s.replaceAll("\\u001B\\[[;\\d]*m", "").length();
         if (len >= width) return s;
