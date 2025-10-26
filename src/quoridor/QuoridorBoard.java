@@ -55,21 +55,72 @@ public class QuoridorBoard extends Board<String> {
     public boolean placeWall(int pid, char orientation, int r, int c) {
         if (wallsLeft[pid] <= 0) return false;
         if (!(orientation == 'H' || orientation == 'V')) return false;
-        if (!(1 <= r && r < N && 1 <= c && c < N)) return false;
+        // In these two condition the second placed wall will be out of bound
+        if (orientation == 'H' && c == N) return false;
+        if (orientation == 'V' && r == N) return false;
+
+        // Prevention of out of bound wall placements
+        if (!(1 <= r && r <= N && 1 <= c && c <= N)) return false;
 
         List<String> newEdges = new ArrayList<>();
         List<WallTile> newTiles = new ArrayList<>();
 
         if (orientation == 'H') {
-            // Horizontal wall blocks left-right between (r,c)-(r,c+1) and (r+1,c)-(r+1,c+1)
-            newEdges.add(edge(r, c, r, c + 1));
-            newEdges.add(edge(r + 1, c, r + 1, c + 1));
+            for (WallTile wall : walls) {
+                if (wall.isHorizontal()) {
+                    if (wall.getRow() == r && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r && wall.getCol() == c + 1)
+                        return false;
+                }
+                else {
+                    // All conditions to prevent horizontal wall from touching any vertical walls
+                    if (wall.getRow() == r - 1 && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r - 1 && wall.getCol() == c + 1)
+                        return false;
+                    if (wall.getRow() == r && wall.getCol() == c + 1)
+                        return false;
+                    if (wall.getRow() == r - 1 && wall.getCol() == c + 2)
+                        return false;
+                    if (wall.getRow() == r && wall.getCol() == c + 2)
+                        return false;
+                }
+            }
+            // Horizontal wall blocks up-down between (r-1,c)-(r,c) and (r-1,c+1)-(r,c+1)
+            newEdges.add(edge(r - 1, c, r, c));
+            newEdges.add(edge(r - 1, c + 1, r, c + 1));
             newTiles.add(new WallTile(r, c, true));
             newTiles.add(new WallTile(r, c + 1, true));
         } else {
-            // Vertical wall blocks up-down between (r,c)-(r+1,c) and (r,c+1)-(r+1,c+1)
-            newEdges.add(edge(r, c, r + 1, c));
-            newEdges.add(edge(r, c + 1, r + 1, c + 1));
+            for (WallTile wall : walls) {
+                if (wall.isHorizontal()) {
+                    // All conditions to prevent vertical wall from touching any horizontal walls
+                    if (wall.getRow() == r && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r && wall.getCol() == c - 1)
+                        return false;
+                    if (wall.getRow() == r + 1 && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r + 1 && wall.getCol() == c - 1)
+                        return false;
+                    if (wall.getRow() == r + 2 && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r + 2 && wall.getCol() == c - 1)
+                        return false;
+                }
+                else {
+                    if (wall.getRow() == r && wall.getCol() == c)
+                        return false;
+                    if (wall.getRow() == r + 1 && wall.getCol() == c)
+                        return false;
+                }
+            }
+            // Vertical wall blocks left-right between (r,c-1)-(r,c) and (r+1,c-1)-(r+1,c)
+            newEdges.add(edge(r, c - 1, r, c));
+            newEdges.add(edge(r + 1, c - 1, r + 1, c));
             newTiles.add(new WallTile(r, c, false));
             newTiles.add(new WallTile(r + 1, c, false));
         }
@@ -151,10 +202,16 @@ public class QuoridorBoard extends Board<String> {
             sb.append(String.format("%2d ", r));
             for (int c = 1; c <= N; c++) {
                 boolean v = hasWall(r, c, false);
-                sb.append(v ? YEL + "|" + RESET : GRAY + "|" + RESET);
+                sb.append(v ? YEL + "/" + RESET : GRAY + "|" + RESET);
 
                 String cell = " ";
-                if (pawns[0].getRow() == r && pawns[0].getCol() == c) cell = RED + "A" + RESET;
+                if (pawns[0].getRow() == r && pawns[0].getCol() == c){
+                    // When both A & B are in the same cell
+                    if (pawns[0].getRow() == pawns[1].getRow() && pawns[0].getCol() == pawns[1].getCol())
+                        cell = RED + "A" + RESET + " & " + BLUE + "B" + RESET;
+                    else
+                        cell = RED + "A" + RESET;
+                }
                 else if (pawns[1].getRow() == r && pawns[1].getCol() == c) cell = BLUE + "B" + RESET;
 
                 sb.append(center(cell, CELL_W));
