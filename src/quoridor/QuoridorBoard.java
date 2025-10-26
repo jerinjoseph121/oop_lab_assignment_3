@@ -73,9 +73,9 @@ public class QuoridorBoard extends Board<String> {
             newAnchors.add(key(r, c));
             newAnchors.add(key(r, c + 1));
 
-            // Blocks (r, c)-(r, c+1) and (r+1, c)-(r+1, c+1)
-            newEdges.add(edge(r, c, r, c + 1));
-            newEdges.add(edge(r + 1, c, r + 1, c + 1));
+            // Blocks (r - 1, c)-(r, c) and (r - 1, c + 1)-(r, c + 1)
+            newEdges.add(edge(r - 1, c, r, c));
+            newEdges.add(edge(r - 1, c + 1, r, c + 1));
 
             hWalls.addAll(newAnchors);
         } else {
@@ -86,9 +86,9 @@ public class QuoridorBoard extends Board<String> {
             newAnchors.add(key(r, c));
             newAnchors.add(key(r + 1, c));
 
-            // Blocks (r, c)-(r+1, c) and (r, c+1)-(r+1, c+1)
-            newEdges.add(edge(r, c, r + 1, c));
-            newEdges.add(edge(r, c + 1, r + 1, c + 1));
+            // Blocks (r, c - 1)-(r, c) and (r + 1, c - 1)-(r + 1, c)
+            newEdges.add(edge(r, c - 1, r, c));
+            newEdges.add(edge(r + 1, c - 1, r + 1, c));
 
             vWalls.addAll(newAnchors);
         }
@@ -185,11 +185,16 @@ public class QuoridorBoard extends Board<String> {
             // row cells
             sb.append(String.format("%2d ", r));
             for (int c = 1; c <= N; c++) {
-                if (vWalls.contains(key(r, c))) sb.append(YEL).append("|").append(RESET);
+                if (vWalls.contains(key(r, c))) sb.append(YEL).append("\\").append(RESET);
                 else sb.append(GRAY).append("|").append(RESET);
 
                 String cell = " ";
-                if (pawns[0].getRow() == r && pawns[0].getCol() == c) cell = RED + "A" + RESET;
+                if (pawns[0].getRow() == r && pawns[0].getCol() == c){
+                    if (pawns[0].getRow() == pawns[1].getRow() && pawns[0].getCol() == pawns[1].getCol())
+                        cell = RED + "A" + RESET + " & " + BLUE + "B" + RESET;
+                    else
+                        cell = RED + "A" + RESET;
+                }
                 else if (pawns[1].getRow() == r && pawns[1].getCol() == c) cell = BLUE + "B" + RESET;
 
                 sb.append(center(cell, CELL_W));

@@ -36,10 +36,11 @@ public class Quoridor extends Game {
             System.out.print(board.displayBoard());
             System.out.printf("A -> %s\n", p1.getName());
             System.out.printf("B -> %s\n\n", p2.getName());
+            System.out.println("Note: Horizontal and Vertical walls cannot cross or touch each other. Players can pass each other.");
             System.out.printf("[%s] turn. Enter a command :\n", current.getName());
             System.out.println("M r c -> Move to row r and column c");
-            System.out.println("H r c -> Place horizontal wall top of box [r,c]");
-            System.out.println("V r c -> Place vertical wall left of box [r,c]");
+            System.out.println("H r c -> Place horizontal wall top and top-right of box [r,c]");
+            System.out.println("V r c -> Place vertical wall left and bottom-left of box [r,c]");
             System.out.println("S -> Show board");
             System.out.println("Q -> Q to Main Menu");
             String cmd = sc.next().toUpperCase();

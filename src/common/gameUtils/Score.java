@@ -16,9 +16,9 @@ public class Score {
 
     /** Displays saved scores as a formatted table */
     public void showScores() {
-        System.out.println("\n-----------------------------------------------------------");
+        System.out.println("\n-----------------------------------------------------------------------------");
         System.out.printf("%-20s %-20s %-12s %-15s%n", "Player", "Game", "Timer", "Winner");
-        System.out.println("-----------------------------------------------------------");
+        System.out.println("-----------------------------------------------------------------------------");
 
         try (BufferedReader br = new BufferedReader(new FileReader(SCORE_FILE))) {
             String line;
@@ -32,6 +32,6 @@ public class Score {
             System.out.println("No saved scores yet.");
         }
 
-        System.out.println("-----------------------------------------------------------\n");
+        System.out.println("-----------------------------------------------------------------------------\n");
     }
 }
